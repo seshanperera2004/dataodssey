@@ -171,7 +171,7 @@ export default function HeroSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.6 }}
           transition={{ delay: 0.3, duration: 1.0 }}
-          className="mt-14 sm:mt-20 grid grid-cols-3 gap-3 sm:gap-6 lg:gap-8 max-w-xs sm:max-w-sm lg:max-w-lg mx-auto"
+          className="mt-14 sm:mt-20 grid grid-cols-3 gap-3 sm:gap-6 lg:gap-8 max-w-sm sm:max-w-md lg:max-w-xl mx-auto"
         >
           {[
             { value: '10+', label: 'Universities' },
@@ -183,7 +183,7 @@ export default function HeroSection() {
                 className="font-bold text-cyan-400 mb-0.5 sm:mb-1"
                 style={{
                   fontFamily: 'Orbitron, sans-serif',
-                  fontSize: 'clamp(1rem, 3.5vw, 2rem)',
+                  fontSize: 'clamp(0.85rem, 3vw, 1.75rem)',
                 }}
               >
                 {value}
