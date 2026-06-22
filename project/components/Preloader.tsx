@@ -74,7 +74,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
             >
               <div className="relative w-20 sm:w-24 h-20 sm:h-24">
                 <Image
-                  src="/images/logos/AIclub3d.png"
+                  src="project/public/images/logos"
                   alt="DatAInspire"
                   fill
                   className="object-contain drop-shadow-[0_0_24px_rgba(0,245,255,0.35)]"
