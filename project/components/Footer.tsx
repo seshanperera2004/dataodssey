@@ -7,7 +7,7 @@ import {
   Clock, MapPin, ExternalLink, ArrowRight,
 } from 'lucide-react';
 import Image from 'next/image';
-import { withBasePath } from '@/lib/asset-path';
+
 
 const NAV_LINKS = [
   { label: 'About', href: '#about' },
