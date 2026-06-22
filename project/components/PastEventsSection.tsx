@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { Images, X, ChevronLeft, ChevronRight, ExternalLink, ZoomIn } from 'lucide-react';
 import Image from 'next/image';
+import { withBasePath } from '@/lib/asset-path';
 
 const PHOTOS = [
   {
@@ -228,7 +229,7 @@ export default function PastEventsSection() {
                   {/* Image */}
                   <div className="relative w-full overflow-hidden" style={{ aspectRatio: '1/1' }}>
                     <Image
-                      src={photo.src}
+                      src={withBasePath(photo.src)}
                       alt={photo.alt}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
+import { withBasePath } from '@/lib/asset-path';
 
 const MS_FORM_URL = 'https://forms.office.com/r/YOUR_FORM_ID'; // Replace with actual MS Form URL
 
@@ -79,7 +80,7 @@ export default function Navbar() {
               {/* Logo image with transparent background */}
               <div className="relative w-11 sm:w-13 lg:w-14 h-11 sm:h-13 lg:h-14 shrink-0" style={{width:'clamp(2.5rem,5vw,3.5rem)',height:'clamp(2.5rem,5vw,3.5rem)'}}>
                 <Image
-                  src="/images/logos/club3d.png"
+                  src={withBasePath('/images/logos/AIclub3d.png')}
                   alt="DatAInspire Logo"
                   fill
                   className="object-contain drop-shadow-[0_0_10px_rgba(0,245,255,0.3)] group-hover:drop-shadow-[0_0_18px_rgba(0,245,255,0.55)] transition-all duration-300"
