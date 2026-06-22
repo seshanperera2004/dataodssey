@@ -25,7 +25,7 @@ export default function HeroSection() {
     offset: ['start start', 'end start'],
   });
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
-  const opacity = useTransform(scrollYProgress, [0.3, 0.7], [1, 0]);
+  const opacity = useTransform(scrollYProgress, [0.3, 0.5], [1, 0]);
 
   return (
     <section
