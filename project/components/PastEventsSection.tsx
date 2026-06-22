@@ -7,31 +7,31 @@ import Image from 'next/image';
 
 const PHOTOS = [
   {
-    src: 'project/event photos/Picture1-1.jpg',
+    src: 'project/Picture1-1.jpg',
     alt: 'Data Odyssey 2025 — Award Ceremony with Chief Guest',
     caption: 'Award Ceremony',
     tag: 'Ceremony',
   },
   {
-    src: 'project/event photos/Picture2.jpg',
+    src: 'project/Picture2.jpg',
     alt: 'Data Odyssey 2025 — Certificate Presentation to Winners',
     caption: 'Certificate Presentation',
     tag: 'Winners',
   },
   {
-    src: 'project/event photos/Picture3.jpg',
+    src: 'project/Picture3.jpg',
     alt: 'Data Odyssey 2025 — Champions: CartConnect Team',
     caption: 'Champions — CartConnect',
     tag: 'Champions',
   },
   {
-    src: 'project/event photos/a4bbb096-1856-4768-82de-029701235593.jpg',
+    src: 'project/a4bbb096-1856-4768-82de-029701235593.jpg',
     alt: 'Data Odyssey 2025 — 1st Runner Up: NeuroBloom',
     caption: '1st Runner Up — NeuroBloom',
     tag: '1st Runner Up',
   },
   {
-    src: 'project/event photos/80f8c12f-0909-4677-8450-4239b12aa1b2.jpg',
+    src: 'project/80f8c12f-0909-4677-8450-4239b12aa1b2.jpg',
     alt: 'Data Odyssey 2025 — 1st Runner Up: DineFlow',
     caption: '1st Runner Up — DineFlow',
     tag: '1st Runner Up',
