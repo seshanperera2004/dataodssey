@@ -207,7 +207,7 @@ export default function Footer() {
               <div className="flex items-center gap-3">
                 <div className="relative w-12 sm:w-14 h-12 sm:h-14 shrink-0">
                   <Image
-                    src={withBasePath('/images/logos/kdu-logo.svg')}
+                    src={withBasePath('/images/logos/KDU LOGO NEW.png')}
                     alt="KDU Logo"
                     fill
                     className="object-contain"
