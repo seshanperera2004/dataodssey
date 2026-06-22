@@ -180,7 +180,7 @@ export default function HeroSection() {
           ].map(({ value, label }) => (
             <div key={label} className="text-center">
               <div
-                className="font-bold text-cyan-400 mb-0.5 sm:mb-1"
+                className="font-bold text-cyan-400 mb-0.5 sm:mb-1 whitespace-nowrap"
                 style={{
                   fontFamily: 'Orbitron, sans-serif',
                   fontSize: 'clamp(0.85rem, 3vw, 1.75rem)',
