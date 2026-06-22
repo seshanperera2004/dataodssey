@@ -166,9 +166,10 @@ export default function HeroSection() {
 
         {/* Stats row */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1, duration: 0.8 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ delay: 0.3, duration: 1.0 }}
           className="mt-14 sm:mt-20 grid grid-cols-3 gap-3 sm:gap-6 lg:gap-8 max-w-xs sm:max-w-sm lg:max-w-lg mx-auto"
         >
           {[
