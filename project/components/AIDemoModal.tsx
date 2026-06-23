@@ -2,108 +2,227 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, RefreshCw, Shield, Zap, Brain, Target, TrendingUp } from 'lucide-react';
+import { X, Camera, RefreshCw, Shield, Zap, Brain, Target, TrendingUp, Sparkles, Hand } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Emotion = 'Happy' | 'Surprised' | 'Neutral' | 'Focused';
-type ScanPhase = 'idle' | 'requesting' | 'detecting' | 'analyzing' | 'profiling' | 'complete';
+type GestureArchetype = 'The Weaver' | 'The Conduit' | 'The Architect' | 'The Dreamer' | 'The Catalyst';
+type ScanPhase = 'idle' | 'requesting' | 'observing' | 'weaving' | 'signing' | 'complete';
 
-interface AIProfile {
-  innovationIndex: number;
-  dataSciencePotential: 'HIGH' | 'VERY HIGH' | 'EXCEPTIONAL';
-  hackathonSurvival: number;
-  curiosityScore: number;
-  focusScore: number;
-  aiCuriosityScore: number;
-  problemSolvingPotential: number;
-  detectedEmotion: Emotion;
-  funFact: string;
+interface HumanSignature {
+  creativityToLogicRatio: number; // 0 = pure logic, 100 = pure creativity
+  digitalOpennessScore: number;   // 0 = guarded, 100 = fully open
+  rhythmFingerprint: number;      // unique motion cadence value
+  humanNoiseIndex: number;        // imperfection/entropy in movement
+  archetype: GestureArchetype;
   insight: string;
+  funFact: string;
+  generatedSymbol: string;        // abstract symbol string (e.g., "⟐⧗⟁")
 }
 
 interface LiveMetrics {
-  focusScore: number;
-  innovationIndex: number;
-  aiCuriosityScore: number;
-  problemSolving: number;
+  gestureFlow: number;
+  symmetryIndex: number;
+  energyLevel: number;
+  openness: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SCAN_PHASES: { phase: ScanPhase; label: string; duration: number }[] = [
-  { phase: 'detecting', label: 'Face Detected', duration: 1200 },
-  { phase: 'analyzing', label: 'Analyzing...', duration: 1600 },
-  { phase: 'profiling', label: 'Generating AI Profile...', duration: 1800 },
-  { phase: 'complete', label: 'Analysis Complete', duration: 0 },
+  { phase: 'observing', label: 'Observing Gestures...', duration: 3000 },
+  { phase: 'weaving', label: 'Weaving Digital Aura...', duration: 4000 },
+  { phase: 'signing', label: 'Generating Human Signature...', duration: 3000 },
+  { phase: 'complete', label: 'Signature Complete', duration: 0 },
 ];
+
+const ARCHETYPES: GestureArchetype[] = [
+  'The Weaver', 'The Conduit', 'The Architect', 'The Dreamer', 'The Catalyst',
+];
+
+const INSIGHTS: Record<GestureArchetype, string[]> = {
+  'The Weaver': [
+    'You weave intention into every motion — a natural creator in the digital realm.',
+    'Your hands speak the language of connection, threading ideas into reality.',
+    'The loom recognizes you as one who finds patterns in chaos.',
+  ],
+  'The Conduit': [
+    'Energy flows through you effortlessly — you are a bridge between worlds.',
+    'Your gestures carry a rare fluidity that mirrors pure data streams.',
+    'The machine sees you as a channel for something greater than code.',
+  ],
+  'The Architect': [
+    'Precision and purpose define your every movement — you build with intent.',
+    'Your hands think in structures, blueprints, and elegant frameworks.',
+    'The AI recognizes a mind that shapes raw potential into lasting form.',
+  ],
+  'The Dreamer': [
+    'Your movements drift with imagination — untethered and beautifully abstract.',
+    'You gesture like someone who sees what doesn\'t yet exist.',
+    'The loom detects a creative force that defies logical boundaries.',
+  ],
+  'The Catalyst': [
+    'Sharp, decisive motions mark you as an agent of transformation.',
+    'Your hands ignite change — the AI feels the spark in your rhythm.',
+    'You are the spark that turns stillness into motion, data into meaning.',
+  ],
+};
 
 const FUN_FACTS = [
-  'You would probably ask ChatGPT before Googling.',
-  'You likely debug code at 2 AM with cold coffee.',
-  'Your brain runs on parallel threads — classic engineer.',
-  'You name your variables better than most people name their pets.',
-  'You\'ve definitely thought about automating your morning routine.',
-  'Stack Overflow is your second home.',
-  'You mentally calculate time complexity in real life.',
-  'You think in JSON even during conversations.',
+  'Your hand movements are 43% more fluid than the average human.',
+  'The AI detected micro-gestures suggesting latent telekinetic potential (just kidding... mostly).',
+  'You gesture like someone who explains things with their hands — a true storyteller.',
+  'Your finger splay pattern is statistically unique — one in 2.4 million.',
+  'The rhythm of your hands matches the tempo of a calm, focused mind.',
+  'Your left hand leads slightly more than your right — a sign of creative dominance.',
+  'The distance you naturally hold between hands suggests high collaborative instinct.',
 ];
 
-const INSIGHTS = [
-  'Your focus level is exceptional. You look like a future Data Scientist.',
-  'AI predicts you would survive a hackathon with 3 hours of sleep.',
-  'Your expression suggests strong problem-solving energy.',
-  'Detected innovation potential: HIGH. KDU material confirmed.',
-  'Neural pattern analysis reveals a natural data explorer.',
-  'Cognitive signature matches a top-tier AI researcher profile.',
-];
-
-const POTENTIAL_LABELS: ('HIGH' | 'VERY HIGH' | 'EXCEPTIONAL')[] = ['HIGH', 'VERY HIGH', 'EXCEPTIONAL'];
+const SYMBOLS = ['⟐', '⧗', '⟁', '⧖', '⟓', '⧊', '⟒', '⧌', '⟕', '⧏', '⟐', '⧗', '⟁', '⧖', '⟓', '⧊', '⟒', '⧌'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randFloat = (min: number, max: number) => Math.random() * (max - min) + min;
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
 
-function generateProfile(emotion: Emotion): AIProfile {
-  const base = emotion === 'Happy' ? 88 : emotion === 'Focused' ? 92 : emotion === 'Surprised' ? 82 : 78;
+function generateLiveMetrics(handData?: { left: number[][]; right: number[][] }): LiveMetrics {
+  let symmetryIndex = rand(55, 95);
+  let openness = rand(50, 90);
+
+  if (handData) {
+    const leftCenter = handData.left[0];  // wrist
+    const rightCenter = handData.right[0]; // wrist
+    if (leftCenter && rightCenter) {
+      const dx = leftCenter[0] - rightCenter[0];
+      const dy = leftCenter[1] - rightCenter[1];
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      openness = clamp(Math.round((dist / 0.5) * 100), 30, 95);
+      symmetryIndex = clamp(Math.round(100 - Math.abs(dx) * 100), 40, 98);
+    }
+  }
+
   return {
-    innovationIndex: rand(base - 4, Math.min(base + 8, 99)),
-    dataSciencePotential: pick(POTENTIAL_LABELS),
-    hackathonSurvival: rand(85, 99),
-    curiosityScore: rand(base - 3, Math.min(base + 10, 99)),
-    focusScore: rand(base - 5, Math.min(base + 6, 99)),
-    aiCuriosityScore: rand(base - 2, Math.min(base + 9, 99)),
-    problemSolvingPotential: rand(base - 4, Math.min(base + 7, 99)),
-    detectedEmotion: emotion,
-    funFact: pick(FUN_FACTS),
-    insight: pick(INSIGHTS),
+    gestureFlow: rand(60, 96),
+    symmetryIndex,
+    energyLevel: rand(55, 92),
+    openness,
   };
 }
 
-function generateLiveMetrics(): LiveMetrics {
+function generateSignature(archetype: GestureArchetype): HumanSignature {
+  const insight = pick(INSIGHTS[archetype]);
+  const funFact = pick(FUN_FACTS);
+  const symbol = Array.from({ length: 3 }, () => pick(SYMBOLS)).join('');
+
+  const baseStats: Record<GestureArchetype, { creativityBias: number; opennessBias: number }> = {
+    'The Weaver': { creativityBias: 20, opennessBias: 15 },
+    'The Conduit': { creativityBias: 10, opennessBias: 25 },
+    'The Architect': { creativityBias: -15, opennessBias: 0 },
+    'The Dreamer': { creativityBias: 30, opennessBias: 10 },
+    'The Catalyst': { creativityBias: 5, opennessBias: 20 },
+  };
+
+  const bias = baseStats[archetype];
   return {
-    focusScore: rand(70, 96),
-    innovationIndex: rand(72, 98),
-    aiCuriosityScore: rand(68, 95),
-    problemSolving: rand(75, 97),
+    creativityToLogicRatio: clamp(rand(35, 65) + bias.creativityBias, 5, 95),
+    digitalOpennessScore: clamp(rand(40, 70) + bias.opennessBias, 10, 95),
+    rhythmFingerprint: rand(60, 98),
+    humanNoiseIndex: rand(20, 75),
+    archetype,
+    insight,
+    funFact,
+    generatedSymbol: symbol,
   };
 }
 
-// ─── HUD Canvas overlay ───────────────────────────────────────────────────────
+// ─── Particle System for the Aura Canvas ──────────────────────────────────────
 
-function drawHUD(
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+}
+
+class AuraParticleSystem {
+  particles: Particle[] = [];
+  private canvas: HTMLCanvasElement;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+  }
+
+  emit(x: number, y: number, count: number, color: string) {
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        x,
+        y,
+        vx: randFloat(-1.5, 1.5),
+        vy: randFloat(-1.5, 1.5),
+        life: randFloat(0.6, 1.5),
+        maxLife: randFloat(0.8, 2.0),
+        color,
+        size: randFloat(1.2, 3.5),
+      });
+    }
+  }
+
+  updateAndDraw(ctx: CanvasRenderingContext2D, dt: number) {
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    ctx.save();
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt * 0.001;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.995;
+      p.vy *= 0.995;
+
+      const alpha = (p.life / p.maxLife) * 0.8;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = p.color.replace('1)', `${alpha})`).replace('rgb', 'rgba');
+      if (p.color.startsWith('#')) {
+        // fallback solid
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = alpha;
+      }
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+}
+
+// ─── HUD & Aura Canvas Renderer ──────────────────────────────────────────────
+
+function drawHandsAndAura(
   ctx: CanvasRenderingContext2D,
-  landmarks: { x: number; y: number }[],
+  leftLandmarks: number[][] | null,
+  rightLandmarks: number[][] | null,
   w: number,
   h: number,
   scanY: number,
   phase: ScanPhase,
+  particleSystem: AuraParticleSystem | null,
+  time: number,
 ) {
   ctx.clearRect(0, 0, w, h);
 
   // Scan line
-  const lineColor = phase === 'complete' ? 'rgba(0,255,128,0.55)' : 'rgba(0,245,255,0.55)';
+  const lineColor = phase === 'complete' ? 'rgba(255,200,60,0.45)' : 'rgba(0,245,255,0.45)';
   const grad = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 20);
   grad.addColorStop(0, 'transparent');
   grad.addColorStop(0.5, lineColor);
@@ -111,74 +230,104 @@ function drawHUD(
   ctx.fillStyle = grad;
   ctx.fillRect(0, scanY - 20, w, 40);
 
-  if (landmarks.length === 0) return;
+  // Convert normalized landmarks to pixel coords
+  const toPixel = (lm: number[][]) => lm.map(([x, y]) => ({ x: x * w, y: y * h }));
 
-  // Scale landmarks from [0,1] to canvas size
-  const pts = landmarks.map((p) => ({ x: p.x * w, y: p.y * h }));
+  const leftPx = leftLandmarks ? toPixel(leftLandmarks) : null;
+  const rightPx = rightLandmarks ? toPixel(rightLandmarks) : null;
 
-  // Face mesh dots
-  const dotColor = phase === 'complete' ? '#00ff80' : '#00f5ff';
-  ctx.fillStyle = dotColor;
-  ctx.shadowColor = dotColor;
-  ctx.shadowBlur = 4;
-  for (const p of pts) {
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.shadowBlur = 0;
-
-  // Bounding box
-  const xs = pts.map((p) => p.x);
-  const ys = pts.map((p) => p.y);
-  const bx = Math.min(...xs) - 18;
-  const by = Math.min(...ys) - 18;
-  const bw = Math.max(...xs) - bx + 18;
-  const bh = Math.max(...ys) - by + 18;
-  const cornerLen = 18;
-  const boxColor = phase === 'complete' ? '#00ff80' : '#00f5ff';
-
-  ctx.strokeStyle = boxColor;
-  ctx.lineWidth = 2;
-  ctx.shadowColor = boxColor;
+  // Glow settings
+  const handColor = phase === 'complete' ? '#ffc840' : '#00f5ff';
+  ctx.shadowColor = handColor;
   ctx.shadowBlur = 8;
 
-  // Corner brackets
-  const corners: [number, number, number, number, number, number][] = [
-    [bx, by, bx + cornerLen, by, bx, by + cornerLen],
-    [bx + bw, by, bx + bw - cornerLen, by, bx + bw, by + cornerLen],
-    [bx, by + bh, bx + cornerLen, by + bh, bx, by + bh - cornerLen],
-    [bx + bw, by + bh, bx + bw - cornerLen, by + bh, bx + bw, by + bh - cornerLen],
-  ];
-  for (const [x1, y1, x2, y2, x3, y3] of corners) {
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x1, y1);
-    ctx.lineTo(x3, y3);
-    ctx.stroke();
-  }
+  // Draw hand landmarks
+  const drawHand = (pts: { x: number; y: number }[], color: string) => {
+    // Connections (simplified: connect all points with thin lines)
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        if (j - i > 3) continue; // only close neighbors for performance
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Dots
+    ctx.fillStyle = color;
+    for (const p of pts) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  if (leftPx) drawHand(leftPx, handColor);
+  if (rightPx) drawHand(rightPx, handColor);
   ctx.shadowBlur = 0;
 
-  // Status label above box
-  ctx.font = 'bold 11px "Courier New", monospace';
-  ctx.fillStyle = boxColor;
-  ctx.shadowColor = boxColor;
-  ctx.shadowBlur = 6;
-  ctx.fillText('FACE LOCKED', bx, by - 8);
-  ctx.shadowBlur = 0;
+  // Draw connecting aura threads between hands
+  if (leftPx && rightPx) {
+    const leftCenter = leftPx[0]; // wrist
+    const rightCenter = rightPx[0]; // wrist
 
-  // Cross-hair on nose bridge (landmark ~6)
-  if (pts[6]) {
-    const cx = pts[6].x;
-    const cy = pts[6].y;
-    ctx.strokeStyle = 'rgba(0,245,255,0.8)';
+    // Emit particles from fingertips
+    const fingerIndices = [4, 8, 12, 16, 20]; // tips
+    if (particleSystem && (phase === 'weaving' || phase === 'signing' || phase === 'complete')) {
+      for (const idx of fingerIndices) {
+        if (leftPx[idx]) particleSystem.emit(leftPx[idx].x, leftPx[idx].y, 1, 'rgb(0, 245, 255)');
+        if (rightPx[idx]) particleSystem.emit(rightPx[idx].x, rightPx[idx].y, 1, 'rgb(255, 200, 64)');
+      }
+      particleSystem.updateAndDraw(ctx, time);
+    }
+
+    // Threads between corresponding fingertips
+    ctx.strokeStyle = phase === 'complete' ? 'rgba(255,200,60,0.35)' : 'rgba(0,245,255,0.3)';
     ctx.lineWidth = 1;
+    for (const idx of fingerIndices) {
+      if (leftPx[idx] && rightPx[idx]) {
+        ctx.beginPath();
+        ctx.moveTo(leftPx[idx].x, leftPx[idx].y);
+        ctx.lineTo(rightPx[idx].x, rightPx[idx].y);
+        ctx.stroke();
+      }
+    }
+
+    // Central glowing thread between wrists
+    ctx.strokeStyle = phase === 'complete' ? 'rgba(255,200,60,0.5)' : 'rgba(0,245,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = handColor;
+    ctx.shadowBlur = 10;
     ctx.beginPath();
-    ctx.moveTo(cx - 10, cy);
-    ctx.lineTo(cx + 10, cy);
-    ctx.moveTo(cx, cy - 10);
-    ctx.lineTo(cx, cy + 10);
+    ctx.moveTo(leftCenter.x, leftCenter.y);
+    ctx.lineTo(rightCenter.x, rightCenter.y);
     ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Aura ring midway
+    const midX = (leftCenter.x + rightCenter.x) / 2;
+    const midY = (leftCenter.y + rightCenter.y) / 2;
+    const auraPulse = Math.sin(time * 0.005) * 0.3 + 0.7;
+    ctx.beginPath();
+    ctx.arc(midX, midY, 25 + auraPulse * 10, 0, Math.PI * 2);
+    ctx.strokeStyle = handColor;
+    ctx.globalAlpha = 0.25;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Symbol floating at midpoint during signing/complete
+    if (phase === 'signing' || phase === 'complete') {
+      ctx.font = 'bold 22px "Courier New", monospace';
+      ctx.fillStyle = handColor;
+      ctx.textAlign = 'center';
+      ctx.fillText('✦', midX, midY - 35);
+    }
   }
 }
 
@@ -197,31 +346,34 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
   const scanYRef = useRef(0);
   const scanDirRef = useRef(1);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const faceMeshRef = useRef<any>(null);
-  const lastLandmarksRef = useRef<{ x: number; y: number }[]>([]);
+  const handsRef = useRef<any>(null);
+  const leftHandRef = useRef<number[][] | null>(null);
+  const rightHandRef = useRef<number[][] | null>(null);
+  const particleSystemRef = useRef<AuraParticleSystem | null>(null);
+  const timeRef = useRef(0);
 
   const [scanPhase, setScanPhase] = useState<ScanPhase>('idle');
-  const [profile, setProfile] = useState<AIProfile | null>(null);
+  const [signature, setSignature] = useState<HumanSignature | null>(null);
   const [liveMetrics, setLiveMetrics] = useState<LiveMetrics>(generateLiveMetrics());
-  const [faceDetected, setFaceDetected] = useState(false);
   const [currentPhaseLabel, setCurrentPhaseLabel] = useState('');
   const [scanProgress, setScanProgress] = useState(0);
-  const [detectedEmotion, setDetectedEmotion] = useState<Emotion>('Neutral');
   const [error, setError] = useState<string | null>(null);
   const [mediapipeReady, setMediapipeReady] = useState(false);
+  const [handsDetected, setHandsDetected] = useState(false);
 
-  // Load MediaPipe via CDN script tag (most reliable in Next.js browser env)
+  // Load MediaPipe Hands via CDN
   useEffect(() => {
     if (!isOpen) return;
     if (typeof window === 'undefined') return;
-    if ((window as Window & { FaceMesh?: unknown }).FaceMesh) { setMediapipeReady(true); return; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).Hands) { setMediapipeReady(true); return; }
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js';
     script.crossOrigin = 'anonymous';
     script.onload = () => setMediapipeReady(true);
     script.onerror = () => {
-      // Fallback: run without face mesh — simulated mode
+      // Fallback: run without hands — simulated mode
       setMediapipeReady(true);
     };
     document.head.appendChild(script);
@@ -230,16 +382,14 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
 
   // Flicker live metrics
   useEffect(() => {
-    if (scanPhase !== 'detecting' && scanPhase !== 'analyzing' && scanPhase !== 'profiling') return;
-    const t = setInterval(() => setLiveMetrics(generateLiveMetrics()), 600);
-    return () => clearInterval(t);
-  }, [scanPhase]);
-
-  // Randomly detect emotion while scanning
-  useEffect(() => {
-    if (scanPhase !== 'analyzing' && scanPhase !== 'profiling') return;
-    const emotions: Emotion[] = ['Happy', 'Surprised', 'Neutral', 'Focused'];
-    const t = setInterval(() => setDetectedEmotion(pick(emotions)), 700);
+    if (scanPhase !== 'observing' && scanPhase !== 'weaving' && scanPhase !== 'signing') return;
+    const t = setInterval(() => {
+      setLiveMetrics(generateLiveMetrics(
+        leftHandRef.current && rightHandRef.current
+          ? { left: leftHandRef.current, right: rightHandRef.current }
+          : undefined
+      ));
+    }, 500);
     return () => clearInterval(t);
   }, [scanPhase]);
 
@@ -247,13 +397,14 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
     cancelAnimationFrame(rafRef.current);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    if (faceMeshRef.current) {
-      try { faceMeshRef.current.close(); } catch { /* ignore */ }
-      faceMeshRef.current = null;
+    if (handsRef.current) {
+      try { handsRef.current.close(); } catch { /* ignore */ }
+      handsRef.current = null;
     }
+    particleSystemRef.current = null;
   }, []);
 
-  // Canvas render loop (runs regardless of facemesh — always animates HUD)
+  // Canvas render loop
   const startRenderLoop = useCallback((phase: ScanPhase) => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -261,49 +412,80 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    if (!particleSystemRef.current) {
+      particleSystemRef.current = new AuraParticleSystem(canvas);
+    }
+
     const loop = () => {
       const w = canvas.width;
       const h = canvas.height;
-      // Scan line bounce
       scanYRef.current += 2.5 * scanDirRef.current;
       if (scanYRef.current > h) scanDirRef.current = -1;
       if (scanYRef.current < 0) scanDirRef.current = 1;
-      drawHUD(ctx, lastLandmarksRef.current, w, h, scanYRef.current, phase);
+
+      timeRef.current += 16; // approx 60fps dt
+
+      drawHandsAndAura(
+        ctx,
+        leftHandRef.current,
+        rightHandRef.current,
+        w, h,
+        scanYRef.current,
+        phase,
+        particleSystemRef.current,
+        timeRef.current,
+      );
+
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
   }, []);
 
-  const initFaceMesh = useCallback(() => {
+  const initHands = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const FM = (window as any).FaceMesh;
-    if (!FM) return; // simulated mode — no real face mesh
-    if (faceMeshRef.current) return;
+    const Hands = (window as any).Hands;
+    if (!Hands) return;
 
-    const faceMesh = new FM({
+    const hands = new Hands({
       locateFile: (file: string) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`,
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`,
     });
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: false, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+    hands.setOptions({
+      maxNumHands: 2,
+      minDetectionConfidence: 0.65,
+      minTrackingConfidence: 0.5,
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    faceMesh.onResults((results: any) => {
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        lastLandmarksRef.current = results.multiFaceLandmarks[0];
-        setFaceDetected(true);
-      } else {
-        lastLandmarksRef.current = [];
-        setFaceDetected(false);
-      }
-    });
-    faceMeshRef.current = faceMesh;
+    hands.onResults((results: any) => {
+      const left: number[][] | null = results.multiHandLandmarks?.[0] || null;
+      const right: number[][] | null = results.multiHandLandmarks?.[1] || null;
 
-    // Feed video frames
+      // Determine left/right based on x-coordinate
+      if (left && right) {
+        const leftWristX = left[0][0];
+        const rightWristX = right[0][0];
+        if (leftWristX < rightWristX) {
+          leftHandRef.current = left;
+          rightHandRef.current = right;
+        } else {
+          leftHandRef.current = right;
+          rightHandRef.current = left;
+        }
+      } else {
+        leftHandRef.current = left;
+        rightHandRef.current = right;
+      }
+
+      setHandsDetected(!!(leftHandRef.current && rightHandRef.current));
+    });
+    handsRef.current = hands;
+
     const feed = async () => {
       if (!videoRef.current || videoRef.current.paused || videoRef.current.readyState < 2) {
         requestAnimationFrame(feed);
         return;
       }
-      try { await faceMesh.send({ image: videoRef.current }); } catch { /* ignore */ }
+      try { await hands.send({ image: videoRef.current }); } catch { /* ignore */ }
       requestAnimationFrame(feed);
     };
     feed();
@@ -321,24 +503,24 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        // Size canvas to video
         if (canvasRef.current) {
           canvasRef.current.width = videoRef.current.videoWidth || 640;
           canvasRef.current.height = videoRef.current.videoHeight || 480;
         }
       }
-      setScanPhase('detecting');
-      setFaceDetected(false);
-      setProfile(null);
+      setScanPhase('observing');
+      setHandsDetected(false);
+      setSignature(null);
       setScanProgress(0);
+      leftHandRef.current = null;
+      rightHandRef.current = null;
+      particleSystemRef.current = null;
 
-      // Init MediaPipe if available
-      if (mediapipeReady) initFaceMesh();
+      if (mediapipeReady) initHands();
 
-      // Start HUD render loop
-      startRenderLoop('detecting');
+      startRenderLoop('observing');
 
-      // Auto-progress scan phases
+      // Auto-progress phases
       let elapsed = 0;
       let phaseIdx = 0;
       const totalDuration = SCAN_PHASES.reduce((a, p) => a + p.duration, 0);
@@ -347,14 +529,13 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
         const current = SCAN_PHASES[phaseIdx];
         setCurrentPhaseLabel(current.label);
         setScanPhase(current.phase);
-        setScanProgress(Math.round(((elapsed) / totalDuration) * 100));
+        setScanProgress(Math.round((elapsed / totalDuration) * 100));
 
         if (current.phase === 'complete') {
-          const finalEmotion: Emotion = pick(['Happy', 'Surprised', 'Neutral', 'Focused'] as Emotion[]);
-          setDetectedEmotion(finalEmotion);
-          setProfile(generateProfile(finalEmotion));
+          const archetype = pick(ARCHETYPES);
+          setSignature(generateSignature(archetype));
           setScanProgress(100);
-          setFaceDetected(true);
+          setHandsDetected(true);
           return;
         }
         elapsed += current.duration;
@@ -372,46 +553,45 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
         : 'Could not access camera. Please check your device settings.');
       setScanPhase('idle');
     }
-  }, [mediapipeReady, initFaceMesh, startRenderLoop]);
+  }, [mediapipeReady, initHands, startRenderLoop]);
 
   const scanAgain = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
-    lastLandmarksRef.current = [];
-    setProfile(null);
+    leftHandRef.current = null;
+    rightHandRef.current = null;
+    particleSystemRef.current = null;
+    setSignature(null);
     setScanPhase('idle');
-    setFaceDetected(false);
+    setHandsDetected(false);
     setScanProgress(0);
     setCurrentPhaseLabel('');
-    // Restart
     setTimeout(startCamera, 100);
   }, [startCamera]);
 
   const handleClose = useCallback(() => {
     stopStream();
     setScanPhase('idle');
-    setProfile(null);
-    setFaceDetected(false);
+    setSignature(null);
+    setHandsDetected(false);
     setScanProgress(0);
     setError(null);
     onClose();
   }, [stopStream, onClose]);
 
-  // Cleanup on unmount / close
   useEffect(() => {
     if (!isOpen) stopStream();
     return () => stopStream();
   }, [isOpen, stopStream]);
 
-  // Update render loop phase reference when phase changes
   useEffect(() => {
-    if (scanPhase === 'detecting' || scanPhase === 'analyzing' || scanPhase === 'profiling' || scanPhase === 'complete') {
+    if (['observing', 'weaving', 'signing', 'complete'].includes(scanPhase)) {
       cancelAnimationFrame(rafRef.current);
       startRenderLoop(scanPhase);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanPhase]);
 
-  const isScanning = scanPhase === 'detecting' || scanPhase === 'analyzing' || scanPhase === 'profiling';
+  const isScanning = scanPhase === 'observing' || scanPhase === 'weaving' || scanPhase === 'signing';
 
   return (
     <AnimatePresence>
@@ -438,14 +618,14 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
             <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/[0.05] shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-cyan-400" />
+                  <Hand className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
                   <div className="text-sm font-black text-white tracking-widest" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                    AI DEMO
+                    THE LOOM
                   </div>
                   <div className="text-[9px] font-mono text-cyan-400/60 tracking-[0.2em]">
-                    EMOTION & PERSONALITY INSIGHTS
+                    WEAVE YOUR DIGITAL AURA
                   </div>
                 </div>
               </div>
@@ -458,13 +638,9 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-4 p-4 sm:p-5 lg:p-6">
-
               {/* ── Left: Camera + HUD ── */}
               <div className="flex flex-col gap-3 lg:w-[55%] shrink-0">
-
-                {/* Video feed */}
                 <div className="relative rounded-2xl overflow-hidden bg-[#020610] border border-cyan-500/20 aspect-video">
-                  {/* Corner brackets */}
                   {(['tl','tr','bl','br'] as const).map((c) => (
                     <div key={c} className={`absolute w-5 h-5 z-20 pointer-events-none ${
                       c === 'tl' ? 'top-2 left-2 border-t-2 border-l-2' :
@@ -473,7 +649,6 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                       'bottom-2 right-2 border-b-2 border-r-2'
                     } border-cyan-400/60`} />
                   ))}
-
                   <video
                     ref={videoRef}
                     autoPlay
@@ -487,8 +662,6 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                     className="absolute inset-0 w-full h-full scale-x-[-1] pointer-events-none"
                     style={{ display: isScanning || scanPhase === 'complete' ? 'block' : 'none' }}
                   />
-
-                  {/* Idle state */}
                   {(scanPhase === 'idle' || scanPhase === 'requesting') && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#020610]">
                       <div className="relative w-16 h-16">
@@ -505,8 +678,6 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                       </div>
                     </div>
                   )}
-
-                  {/* Scan phase overlay */}
                   {isScanning && (
                     <div className="absolute bottom-3 left-3 right-3 z-30">
                       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/70 backdrop-blur-sm border border-cyan-500/20">
@@ -520,35 +691,31 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                       </div>
                     </div>
                   )}
-
-                  {/* Complete badge */}
                   {scanPhase === 'complete' && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="absolute bottom-3 left-3 right-3 z-30"
                     >
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/20 backdrop-blur-sm border border-green-500/40">
-                        <div className="w-2 h-2 rounded-full bg-green-400" />
-                        <span className="text-[10px] font-mono text-green-300 tracking-wider">ANALYSIS COMPLETE</span>
-                        <Zap className="w-3 h-3 text-green-400 ml-auto" />
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/15 backdrop-blur-sm border border-yellow-500/40">
+                        <Sparkles className="w-3 h-3 text-yellow-400" />
+                        <span className="text-[10px] font-mono text-yellow-300 tracking-wider">SIGNATURE COMPLETE</span>
+                        <Zap className="w-3 h-3 text-yellow-400 ml-auto" />
                       </div>
                     </motion.div>
                   )}
                 </div>
 
-                {/* Start / Scan Again */}
                 {scanPhase === 'idle' && !error && (
                   <button
                     onClick={startCamera}
                     className="w-full py-3.5 flex items-center justify-center gap-2.5 rounded-xl font-bold text-sm text-[#04080f] bg-cyan-400 hover:bg-cyan-300 transition-all shadow-[0_0_20px_rgba(0,245,255,0.3)] hover:shadow-[0_0_30px_rgba(0,245,255,0.5)]"
                     style={{ fontFamily: 'Orbitron, sans-serif' }}
                   >
-                    <Camera className="w-4 h-4" />
-                    START AI SCAN
+                    <Hand className="w-4 h-4" />
+                    BEGIN THE WEAVE
                   </button>
                 )}
-
                 {error && (
                   <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 font-mono">
                     {error}
@@ -557,7 +724,6 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                     </button>
                   </div>
                 )}
-
                 {scanPhase === 'complete' && (
                   <button
                     onClick={scanAgain}
@@ -565,34 +731,32 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
                     style={{ fontFamily: 'Orbitron, sans-serif' }}
                   >
                     <RefreshCw className="w-4 h-4 text-cyan-400" />
-                    SCAN AGAIN
+                    WEAVE AGAIN
                   </button>
                 )}
 
-                {/* Live metrics panel */}
+                {/* Live metrics */}
                 {(isScanning || scanPhase === 'complete') && (
-                  <LiveMetricsPanel metrics={liveMetrics} phase={scanPhase} emotion={detectedEmotion} />
+                  <LiveMetricsPanel metrics={liveMetrics} phase={scanPhase} handsDetected={handsDetected} />
                 )}
 
-                {/* Privacy notice */}
+                {/* Privacy */}
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
                   <Shield className="w-3 h-3 text-white/30 shrink-0" />
                   <p className="text-[9px] sm:text-[10px] text-white/30 font-mono">
-                    All processing happens locally in your browser. No images are stored.
+                    All processing happens locally. No hand images are stored or sent anywhere.
                   </p>
                 </div>
               </div>
 
               {/* ── Right: Profile / Insight panels ── */}
               <div className="flex-1 flex flex-col gap-3">
-                {scanPhase === 'idle' && !error && (
-                  <IdleInfoPanel />
-                )}
+                {scanPhase === 'idle' && !error && <IdleInfoPanel />}
                 {isScanning && (
-                  <ScanningPanel phase={scanPhase} progress={scanProgress} emotion={detectedEmotion} />
+                  <WeavingPanel phase={scanPhase} progress={scanProgress} handsDetected={handsDetected} />
                 )}
-                {scanPhase === 'complete' && profile && (
-                  <ProfileResultPanel profile={profile} />
+                {scanPhase === 'complete' && signature && (
+                  <SignatureResultPanel signature={signature} />
                 )}
               </div>
             </div>
@@ -605,12 +769,12 @@ export default function AIDemoModal({ isOpen, onClose }: AIDemoModalProps) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function LiveMetricsPanel({ metrics, phase, emotion }: { metrics: LiveMetrics; phase: ScanPhase; emotion: Emotion }) {
+function LiveMetricsPanel({ metrics, phase, handsDetected }: { metrics: LiveMetrics; phase: ScanPhase; handsDetected: boolean }) {
   const bars = [
-    { label: 'Focus Score', value: metrics.focusScore, icon: Target, color: 'cyan' },
-    { label: 'Innovation', value: metrics.innovationIndex, icon: Zap, color: 'blue' },
-    { label: 'AI Curiosity', value: metrics.aiCuriosityScore, icon: Brain, color: 'purple' },
-    { label: 'Problem Solving', value: metrics.problemSolving, icon: TrendingUp, color: 'green' },
+    { label: 'Gesture Flow', value: metrics.gestureFlow, icon: TrendingUp, color: 'cyan' },
+    { label: 'Symmetry', value: metrics.symmetryIndex, icon: Target, color: 'blue' },
+    { label: 'Energy Level', value: metrics.energyLevel, icon: Zap, color: 'purple' },
+    { label: 'Openness', value: metrics.openness, icon: Hand, color: 'green' },
   ];
   const colorMap: Record<string, string> = {
     cyan: 'bg-cyan-400', blue: 'bg-blue-400', purple: 'bg-purple-400', green: 'bg-green-400',
@@ -628,8 +792,10 @@ function LiveMetricsPanel({ metrics, phase, emotion }: { metrics: LiveMetrics; p
       <div className="flex items-center justify-between mb-1">
         <span className="text-[9px] font-mono text-white/35 tracking-widest uppercase">Live Metrics</span>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-[9px] font-mono text-cyan-400/60">{emotion}</span>
+          <span className={`w-1.5 h-1.5 rounded-full ${handsDetected ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`} />
+          <span className="text-[9px] font-mono text-cyan-400/60">
+            {handsDetected ? 'DUAL HANDS' : 'DETECTING...'}
+          </span>
         </div>
       </div>
       {bars.map(({ label, value, icon: Icon, color }) => (
@@ -646,7 +812,7 @@ function LiveMetricsPanel({ metrics, phase, emotion }: { metrics: LiveMetrics; p
               className={`text-[10px] font-mono font-bold ${textColorMap[color]}`}
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              {phase === 'complete' ? value : value}%
+              {value}%
             </motion.span>
           </div>
           <div className="h-1 bg-white/[0.04] rounded-full overflow-hidden">
@@ -664,10 +830,10 @@ function LiveMetricsPanel({ metrics, phase, emotion }: { metrics: LiveMetrics; p
 
 function IdleInfoPanel() {
   const features = [
-    { icon: Brain, text: 'Real-time face landmark detection' },
-    { icon: Target, text: 'Emotion & focus analysis' },
-    { icon: Zap, text: 'Instant AI personality profiling' },
-    { icon: TrendingUp, text: 'Innovation & curiosity scoring' },
+    { icon: Hand, text: 'Dual-hand gesture recognition' },
+    { icon: Sparkles, text: 'Living digital aura generation' },
+    { icon: Brain, text: 'AI-crafted human signature' },
+    { icon: Zap, text: 'Archetype & creativity analysis' },
   ];
   return (
     <motion.div
@@ -675,9 +841,9 @@ function IdleInfoPanel() {
       animate={{ opacity: 1 }}
       className="flex flex-col gap-4"
     >
-      <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/8 to-blue-500/5 border border-cyan-500/20">
+      <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/8 to-yellow-500/5 border border-cyan-500/20">
         <h3 className="text-xs font-black text-cyan-300 tracking-widest mb-2" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-          WHAT YOU'LL DISCOVER
+          THE LOOM AWAITS
         </h3>
         <div className="space-y-2.5 mt-3">
           {features.map(({ icon: Icon, text }) => (
@@ -689,21 +855,24 @@ function IdleInfoPanel() {
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-white/35 font-mono mt-3 leading-relaxed">
+          Raise both hands to the camera. Move them naturally. The AI will weave your unique digital aura.
+        </p>
       </div>
       <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
         <p className="text-[10px] font-mono text-white/30 leading-relaxed">
-          For entertainment purposes only. Results are AI-generated fun insights — not scientific assessments.
+          A poetic AI experience exploring the intersection of human gesture and machine perception. For entertainment and introspection.
         </p>
       </div>
     </motion.div>
   );
 }
 
-function ScanningPanel({ phase, progress, emotion }: { phase: ScanPhase; progress: number; emotion: Emotion }) {
+function WeavingPanel({ phase, progress, handsDetected }: { phase: ScanPhase; progress: number; handsDetected: boolean }) {
   const steps = [
-    { id: 'detecting', label: 'Face Detected', done: ['analyzing', 'profiling'].includes(phase) },
-    { id: 'analyzing', label: 'Analyzing...', done: ['profiling'].includes(phase), active: phase === 'analyzing' },
-    { id: 'profiling', label: 'Generating AI Profile...', done: false, active: phase === 'profiling' },
+    { id: 'observing', label: 'Observing Gestures', done: ['weaving', 'signing'].includes(phase) },
+    { id: 'weaving', label: 'Weaving Aura', done: ['signing'].includes(phase), active: phase === 'weaving' },
+    { id: 'signing', label: 'Generating Signature', done: false, active: phase === 'signing' },
   ];
 
   return (
@@ -713,7 +882,7 @@ function ScanningPanel({ phase, progress, emotion }: { phase: ScanPhase; progres
       className="flex flex-col gap-3"
     >
       <div className="p-4 rounded-xl bg-[#020610] border border-cyan-500/20 space-y-3">
-        <div className="text-[9px] font-mono text-white/35 tracking-widest uppercase mb-2">Scan Sequence</div>
+        <div className="text-[9px] font-mono text-white/35 tracking-widest uppercase mb-2">Loom Sequence</div>
         {steps.map((step, i) => (
           <div key={step.id} className="flex items-center gap-3">
             <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border ${
@@ -737,42 +906,45 @@ function ScanningPanel({ phase, progress, emotion }: { phase: ScanPhase; progres
           </div>
         ))}
 
-        {/* Progress */}
         <div className="pt-2">
           <div className="flex justify-between mb-1.5">
             <span className="text-[9px] font-mono text-white/30 tracking-wider">PROGRESS</span>
             <span className="text-[10px] font-mono font-bold text-cyan-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{progress}%</span>
           </div>
           <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
-            <motion.div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+            <motion.div className="h-full bg-gradient-to-r from-cyan-400 to-yellow-500 rounded-full" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
           </div>
         </div>
       </div>
 
-      {/* Flickering detected emotion */}
       <motion.div
-        key={emotion}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        animate={{ opacity: handsDetected ? 1 : 0.5 }}
         className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-3"
       >
-        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-        <span className="text-[10px] font-mono text-white/40">Detected signal:</span>
-        <span className="text-xs font-bold text-cyan-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>{emotion.toUpperCase()}</span>
+        <div className={`w-2 h-2 rounded-full ${handsDetected ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`} />
+        <span className="text-[10px] font-mono text-white/40">Hands:</span>
+        <span className="text-xs font-bold text-cyan-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+          {handsDetected ? 'BOTH DETECTED' : 'AWAITING HANDS'}
+        </span>
       </motion.div>
     </motion.div>
   );
 }
 
-function ProfileResultPanel({ profile }: { profile: AIProfile }) {
-  const potentialColor = profile.dataSciencePotential === 'EXCEPTIONAL' ? 'text-cyan-300' : profile.dataSciencePotential === 'VERY HIGH' ? 'text-blue-300' : 'text-green-300';
-  const potentialBg = profile.dataSciencePotential === 'EXCEPTIONAL' ? 'bg-cyan-500/15 border-cyan-500/30' : profile.dataSciencePotential === 'VERY HIGH' ? 'bg-blue-500/15 border-blue-500/30' : 'bg-green-500/15 border-green-500/30';
+function SignatureResultPanel({ signature }: { signature: HumanSignature }) {
+  const archetypeColors: Record<GestureArchetype, string> = {
+    'The Weaver': 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
+    'The Conduit': 'text-blue-300 border-blue-500/30 bg-blue-500/10',
+    'The Architect': 'text-purple-300 border-purple-500/30 bg-purple-500/10',
+    'The Dreamer': 'text-pink-300 border-pink-500/30 bg-pink-500/10',
+    'The Catalyst': 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10',
+  };
 
   const metrics = [
-    { label: 'Innovation Index', value: profile.innovationIndex, color: 'text-cyan-400' },
-    { label: 'Hackathon Survival', value: profile.hackathonSurvival, color: 'text-blue-400' },
-    { label: 'Curiosity Score', value: profile.curiosityScore, color: 'text-purple-400' },
-    { label: 'Problem Solving', value: profile.problemSolvingPotential, color: 'text-green-400' },
+    { label: 'Creativity/Logic Ratio', value: signature.creativityToLogicRatio, max: 100, suffix: '% creative', color: 'from-pink-400 to-blue-400' },
+    { label: 'Digital Openness', value: signature.digitalOpennessScore, max: 100, suffix: '%', color: 'from-cyan-400 to-green-400' },
+    { label: 'Rhythm Fingerprint', value: signature.rhythmFingerprint, max: 100, suffix: '% unique', color: 'from-yellow-400 to-orange-400' },
+    { label: 'Human Noise Index', value: signature.humanNoiseIndex, max: 100, suffix: '% imperfect', color: 'from-purple-400 to-pink-400' },
   ];
 
   return (
@@ -782,11 +954,11 @@ function ProfileResultPanel({ profile }: { profile: AIProfile }) {
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="flex flex-col gap-3"
     >
-      {/* Profile header */}
-      <div className="relative p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 overflow-hidden">
+      {/* Signature header */}
+      <div className="relative p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-yellow-500/5 border border-cyan-500/30 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[9px] font-mono text-cyan-400/60 tracking-[0.25em] uppercase">AI Profile Generated</div>
+          <div className="text-[9px] font-mono text-cyan-400/60 tracking-[0.25em] uppercase">Human Signature</div>
           <motion.div
             className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-500/15 border border-green-500/30"
             initial={{ scale: 0.8 }}
@@ -798,26 +970,23 @@ function ProfileResultPanel({ profile }: { profile: AIProfile }) {
           </motion.div>
         </div>
 
-        {/* Detected emotion */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-mono text-white/35">Dominant trait:</span>
-          <span className="text-xs font-bold text-cyan-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            {profile.detectedEmotion}
+        {/* Archetype */}
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border mb-3 ${archetypeColors[signature.archetype]}`}>
+          <Sparkles className="w-3 h-3 text-current opacity-70" />
+          <span className="text-xs font-black tracking-widest" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            {signature.archetype.toUpperCase()}
           </span>
         </div>
 
-        {/* Data Science potential badge */}
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${potentialBg}`}>
-          <Zap className="w-3 h-3 text-current opacity-70" />
-          <span className={`text-xs font-black tracking-widest ${potentialColor}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            DATA SCIENCE POTENTIAL: {profile.dataSciencePotential}
-          </span>
+        {/* Symbol */}
+        <div className="text-3xl text-center my-2 text-cyan-300/80" style={{ fontFamily: 'Courier New, monospace' }}>
+          {signature.generatedSymbol}
         </div>
       </div>
 
       {/* Metric bars */}
       <div className="p-4 rounded-xl bg-[#020610] border border-white/[0.07] space-y-2.5">
-        {metrics.map(({ label, value, color }, i) => (
+        {metrics.map(({ label, value, max, suffix, color }, i) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, x: -10 }}
@@ -826,13 +995,15 @@ function ProfileResultPanel({ profile }: { profile: AIProfile }) {
           >
             <div className="flex justify-between mb-1">
               <span className="text-[9px] font-mono text-white/40">{label}</span>
-              <span className={`text-[10px] font-mono font-bold ${color}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>{value}%</span>
+              <span className="text-[10px] font-mono font-bold text-white/80" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                {value}{suffix}
+              </span>
             </div>
             <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
               <motion.div
-                className={`h-full rounded-full ${color.replace('text-', 'bg-')}`}
+                className={`h-full rounded-full bg-gradient-to-r ${color}`}
                 initial={{ width: '0%' }}
-                animate={{ width: `${value}%` }}
+                animate={{ width: `${(value / max) * 100}%` }}
                 transition={{ duration: 0.8, delay: i * 0.1, ease: 'easeOut' }}
               />
             </div>
@@ -848,7 +1019,7 @@ function ProfileResultPanel({ profile }: { profile: AIProfile }) {
         className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/15"
       >
         <div className="text-[9px] font-mono text-cyan-400/50 tracking-widest uppercase mb-1.5">AI Insight</div>
-        <p className="text-xs text-white/70 leading-relaxed italic">"{profile.insight}"</p>
+        <p className="text-xs text-white/70 leading-relaxed italic">"{signature.insight}"</p>
       </motion.div>
 
       {/* Fun fact */}
@@ -859,7 +1030,7 @@ function ProfileResultPanel({ profile }: { profile: AIProfile }) {
         className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]"
       >
         <div className="text-[9px] font-mono text-white/25 tracking-widest uppercase mb-1">Fun Fact</div>
-        <p className="text-[10px] sm:text-xs text-white/45 font-mono leading-relaxed">"{profile.funFact}"</p>
+        <p className="text-[10px] sm:text-xs text-white/45 font-mono leading-relaxed">"{signature.funFact}"</p>
       </motion.div>
     </motion.div>
   );
